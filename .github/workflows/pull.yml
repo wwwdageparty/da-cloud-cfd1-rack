@@ -17,7 +17,11 @@ jobs:
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
+
+    - name: Check GITHUB_TOKEN
+      run: |
+        echo "GITHUB_TOKEN is set: ${{ secrets.GITHUB_TOKEN != '' }}"
+
     - name: Clone private repository
       run: |
         git clone --depth 1 --branch master https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/DaGeRoot/da-cloud-commondatabase.git private-repo
