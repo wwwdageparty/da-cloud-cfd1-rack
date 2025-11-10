@@ -20,8 +20,8 @@ jobs:
         
     - name: Clone private repository
       run: |
-        git clone --depth 1 --branch master https://github.com/DaGeRoot/da-cloud-commondatabase.git private-repo  # Replace with your private repo
-        cp -r private-repo/* .  # Copy all contents from the private repository into the public repo's working directory
+        git clone --depth 1 --branch master https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/DaGeRoot/da-cloud-commondatabase.git private-repo
+        cp -r private-repo/* . 
 
     - name: Add and commit changes
       run: |
