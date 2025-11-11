@@ -1,7 +1,7 @@
 name: Sync Repositories
 
 on:
-  workflow_dispatch:  # This allows you to trigger the action manually via GitHub UI
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -11,26 +11,22 @@ jobs:
     - name: Checkout public repository
       uses: actions/checkout@v3
       with:
-        token: ${{ secrets.TOKEN }}  # Automatically provided by GitHub Actions
+        token: ${{ secrets.TOKEN }}
 
     - name: Set up Git for pushing
       run: |
         git config --global user.name "GitHub Actions"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-    - name: Check Secrets
-      run: |
-        echo "PRIVATE_REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}"
-        
+
     - name: Clone private repository
       run: |
         echo "Cloning private repository..."
         git clone --depth 1 --branch master https://x-access-token:${{ secrets.TOKEN }}@github.com/DaGeRoot/da-cloud-commondatabase.git private-repo
-        cp -r private-repo/* .  # Copy all contents from the private repository into the public repo's working directory
+        cp -r private-repo/* .
         rm -rf private-repo
-
 
     - name: Add and commit changes
       run: |
         git add .
-        git commit -m "Sync public repository from private repository"
+        git commit -m "Sync public repository from private repository" || echo "No changes to commit"
         git push origin master
