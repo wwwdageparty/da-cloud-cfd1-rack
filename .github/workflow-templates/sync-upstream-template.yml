@@ -1,4 +1,8 @@
-name: Sync from Upstream da-cloud-commondatabase
+# 🚀 Sync with upstream (https://github.com/wwwdageparty/da-cloud-commondatabase.git)
+# Keeps your added files and folders.
+# 🧩 Save this as .github/workflows/sync.yml
+
+name: Safe Sync from Upstream
 
 on:
   schedule:
@@ -26,8 +30,19 @@ jobs:
         git remote | grep upstream || git remote add upstream https://github.com/wwwdageparty/da-cloud-commondatabase.git
         git fetch upstream
 
-    - name: Force sync with upstream
+    - name: Merge upstream (keep my files)
       run: |
         git checkout master
-        git reset --hard upstream/master
-        git push origin master --force
+        # Try merge first (safe)
+        git merge upstream/master --allow-unrelated-histories --no-edit || echo "Merge had conflicts, proceeding to manual resolution"
+
+        # If merge conflicts occur, prefer *your* versions for local files
+        git checkout --ours .
+        git add .
+
+        # Commit if there are merge results
+        git diff --cached --quiet || git commit -m "🔄 Sync with upstream (kept local files)"
+
+    - name: Push updates
+      run: |
+        git push origin master || echo "No changes to push"
