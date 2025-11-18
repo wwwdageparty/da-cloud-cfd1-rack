@@ -27,7 +27,7 @@ jobs:
 
     - name: Add upstream and fetch
       run: |
-        git remote | grep upstream || git remote add upstream https://github.com/wwwdageparty/da-cloud-commondatabase.git
+        git remote | grep upstream || git remote add upstream https://github.com/wwwdageparty/da-cloud-cfd1-commondatabase.git
         git fetch upstream
 
     - name: Merge upstream (keep my files)
