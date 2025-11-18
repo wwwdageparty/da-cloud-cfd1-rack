@@ -2,7 +2,7 @@
 # Keeps your added files and folders.
 # 🧩 Save this as .github/workflows/sync.yml
 
-name: da sync upstream da-cloud-commondatabase
+name: da sync upstream da-cloud-cfd1-rack
 
 on:
   schedule:
@@ -27,7 +27,7 @@ jobs:
 
     - name: Add upstream and fetch
       run: |
-        git remote | grep upstream || git remote add upstream https://github.com/wwwdageparty/da-cloud-cfd1-commondatabase.git
+        git remote | grep upstream || git remote add upstream https://github.com/wwwdageparty/da-cloud-cfd1-rack.git
         git fetch upstream
 
     - name: Merge upstream (keep my files)
