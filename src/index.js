@@ -24,15 +24,15 @@ async function handleApiRequest(action, payload) {
   }
 
   const keys = Object.keys(payload).filter(key => key !== "table_name");
-  const invalidKeys = keys.filter(key => !allowedColumns.includes(key));
-  if (invalidKeys.length > 0) {
-    await errDelegate(`Invalid columns in payload: ${invalidKeys.join(", ")}`);
-    return { error: `Invalid columns: ${invalidKeys.join(", ")}` };
-  }
 
   try {
     switch (action) {
       case "post": {
+        const invalidKeys = keys.filter(key => !allowedColumns.includes(key));
+        if (invalidKeys.length > 0) {
+          await errDelegate(`Invalid columns in payload: ${invalidKeys.join(", ")}`);
+          return { error: `Invalid columns: ${invalidKeys.join(", ")}` };
+        }
         const placeholders = keys.map(() => "?").join(",");
         const sql = `INSERT INTO ${G_tableName} (${keys.join(",")}) VALUES (${placeholders})`;
         const values = keys.map(k => payload[k]);
@@ -58,19 +58,75 @@ async function handleApiRequest(action, payload) {
         return null;
       }
 
-      case "get": {
-        let sql = `SELECT * FROM ${G_tableName}`;
-        let values = [];
-        if (keys.length > 0) {
-          const where = keys.map(k => `${k} = ?`).join(" AND ");
-          sql += ` WHERE ${where}`;
-          values = keys.map(k => payload[k]);
-        }
-        const stmt = db.prepare(sql).bind(...values);
-        const rows = await stmt.all();
-        // RETURN rows even if empty
-        return { rows: rows.results || [] };
-      }
+case "get": {
+  const tableName = G_tableName;
+  const options = payload; // Using full payload as options
+
+  // Helper to check if a column is valid
+  function checkColumnValid(col) {
+    return allowedColumns.includes(col);
+  }
+
+  let query = `SELECT * FROM ${tableName}`;
+  const params = [];
+  const conditions = [];
+
+  // Determine order direction
+  const order = options.order === "desc" ? "DESC" : "ASC";
+  const orderBy = checkColumnValid(options.orderby) ? options.orderby : "id";
+
+  // Prevent ambiguity: cannot use both minId and offset
+  if (options.minId !== undefined && options.offset !== undefined) {
+    return { error: "Cannot use both 'minId' and 'offset' together." };
+  }
+
+  // Apply other filter keys (excluding pagination and order keys)
+  const filterKeys = Object.keys(options).filter(
+    k => !["minId", "offset", "order", "orderby", "table_name"].includes(k)
+  );
+
+  for (const key of filterKeys) {
+    if (!allowedColumns.includes(key)) {
+      return { error: `Invalid column in filters: ${key}` };
+    }
+    conditions.push(`${key} = ?`);
+    params.push(options[key]);
+  }
+
+  // Keyset pagination
+  if (options.offset != null && options.offset !== 0) {
+    if (order === "ASC") {
+      conditions.push(`${orderBy} > ?`);
+    } else {
+      conditions.push(`${orderBy} < ?`);
+    }
+    params.push(options.offset);
+  } else if (options.minId != null) {
+    if (order === "ASC") {
+      conditions.push(`${orderBy} > ?`);
+    } else {
+      conditions.push(`${orderBy} < ?`);
+    }
+    params.push(options.minId);
+  }
+
+  // Build WHERE clause if conditions exist
+  if (conditions.length > 0) {
+    query += " WHERE " + conditions.join(" AND ");
+  }
+
+  // Append ORDER BY clause
+  query += ` ORDER BY ${orderBy} ${order}`;
+
+  // Optional: Add limit if you want, e.g., LIMIT 100
+  // query += " LIMIT 100";
+
+  const stmt = db.prepare(query).bind(...params);
+  const result = await stmt.all();
+
+  return { rows: result.results || [] };
+}
+
 
       case "delete": {
         if (keys.length === 0) {
@@ -124,7 +180,7 @@ async function handleApi(request, env) {
 
   try {
     const ret = await handleApiRequest(action, body.payload);
-
+    
     if (ret && ret.error) {
       //return nack(requestId, "REQUEST_FAILED", JSON.stringify(ret, null, 2));
       return nack(requestId, "REQUEST_FAILED", ret.error);
